@@ -8,5 +8,5 @@ current_api = pyux.sign(pyux)
 
 diff = pyux.diff(current_api, previous_api)
 
-if diff != []:
+if diff:
     raise Exception("API change detected ! \n " + '\n'.join([str(x) for x in diff]))

@@ -2,6 +2,13 @@ from .changes import *
 
 
 def diff(new, old):
+    if isinstance(new, (list, tuple)):
+        assert isinstance(old, list, tuple)
+        assert len(new) == len(old)
+        diffs = []
+        for n, o in zip(new, old):
+            diffs += diff(n, o)
+        return diffs
     old_type = old['type']
     new_type = new['type']
     assert old_type == new_type, 'Can not diff {} against {}.'.format(new_type, old_type)
