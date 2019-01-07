@@ -42,6 +42,8 @@ with open('api.json', 'w') as f:
 * Create `test_api.py` in the root of your project (next to `setup.py`):
 
 ```python
+# test_api.py
+
 import myproject
 import pyux
 import json
