@@ -3,9 +3,17 @@ import types
 import sys
 
 
+def _is_serializable(x):
+    try:
+        json.dumps(x)
+        return True
+    except:
+        return False
+
+
 if sys.version_info[0] == 3:
 
-    ## TODO: annotations
+    # TODO: annotations
 
     def _get_method_sign(func):
         '''
@@ -18,8 +26,12 @@ if sys.version_info[0] == 3:
         sign['args'] = argspec.args
         sign['vargs'] = True if argspec.varargs else False
         sign['kwargs'] = True if argspec.varkw else False
-        sign['defaults'] = argspec.defaults
-        #sign['object'] = func 
+        defs = argspec.defaults
+        if defs is not None:
+            defs = list(defs)
+        if not _is_serializable(defs):
+            defs = None
+        sign['defaults'] = defs
         return sign
 else:
     def _get_method_sign(func):
@@ -33,9 +45,13 @@ else:
         sign['args'] = argspec.args
         sign['vargs'] = True if argspec.varargs else False
         sign['kwargs'] = True if argspec.keywords else False
-        sign['defaults'] = argspec.defaults
-        #sign['object'] = func
-        return sign  
+        defs = argspec.defaults
+        if defs is not None:
+            defs = list(defs)
+        if not _is_serializable(defs):
+            defs = None
+        sign['defaults'] = defs
+        return sign
 
 
 def _get_cls_sign(cls, module=None):
@@ -44,7 +60,7 @@ def _get_cls_sign(cls, module=None):
     '''
     sign = {}
     sign['type'] = 'class'
-    sign['name'] = cls.__name__
+    sign['name'] = str(cls).split("'")[1].split("'")[0]
     methods = []
     properties = []
     classmethods = []
@@ -63,14 +79,17 @@ def _get_cls_sign(cls, module=None):
                     continue
             if isinstance(v, types.FunctionType):
                 f_sign = _get_method_sign(v)
-                if f_sign['args'] == 'self':  # We trust the user to use 'self' here.
+                # We trust the user to use 'self' here.
+                args = f_sign['args']
+                if len(args) > 0 and args[0] == 'self':
                     methods.append(f_sign)
                 else:
                     staticmethods.append(f_sign)
             elif isinstance(v, types.MethodType):
                 classmethods.append(_get_method_sign(v.__func__))
             elif isinstance(v, property):
-                properties.append(k)  # We don't look into the actual get/setter signs.
+                # We don't look into the actual get/setter signs.
+                properties.append(k)
             elif isinstance(v, type):
                 classes.append(_get_cls_sign(v))
             else:
@@ -86,7 +105,6 @@ def _get_cls_sign(cls, module=None):
     sign['staticmethods'] = staticmethods
     sign['bases'] = bases
     sign['variables'] = variables
-    #sign['object'] = cls
     return sign
 
 
@@ -96,7 +114,6 @@ def _get_module_sign(module):
     sign = {}
     sign['type'] = 'module'
     sign['name'] = name
-    sign['version'] = '0.0.1'
     modules = []
     classes = []
     methods = []
@@ -121,7 +138,6 @@ def _get_module_sign(module):
     sign['classes'] = classes
     sign['methods'] = methods
     sign['variables'] = variables
-    #sign['object'] = module
     return sign
 
 

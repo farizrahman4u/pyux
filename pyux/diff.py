@@ -14,11 +14,16 @@ def diff(new, old):
     assert old_type == new_type, 'Can not diff {} against {}.'.format(new_type, old_type)
     typ = old_type
     if typ == 'method':
-        return _diff_method(new, old)
+        changes = _diff_method(new, old)
     elif typ == 'class':
-        return _diff_class(new, old)
+        changes = _diff_class(new, old)
     elif typ == 'module':
-        return _diff_module(new, old)
+        changes = _diff_module(new, old)
+    unique_changes = []
+    for c in changes:
+        if c not in unique_changes:
+            unique_changes.append(c)
+    return unique_changes
 
 
 def _list_to_dict(lst):
@@ -49,19 +54,22 @@ def _sign_to_dict(sign):
         d[k['name']] = 'module', k
     return d
 
+def _norm_tuple_list(x):
+    return json.loads(json.dumps(x))
 
-def _diff_method(new, old):
+def _diff_method(new, old, context=''):
     diffs = []
     name = new['name']
     assert name == old['name']
+    name = context + '/' + name
     old_args = old['args']
     new_args = new['args']
     old_defs = old['defaults']
     new_defs = new['defaults']
     if old_defs is None:
-        old_defs = tuple()
+        old_defs = []
     if new_defs is None:
-        new_defs = tuple()
+        new_defs = []
     old_args_set = set(old_args)
     new_args_set = set(new_args)
     if old_args_set < new_args_set:
@@ -82,8 +90,12 @@ def _diff_method(new, old):
             for i in range(len(old_args) - 1, len(old_args) - common_defs_len, -1):
                 j = len(old_args) - i
                 try:
-                    if old_defs[j] != new_defs[j]:
-                        diffs.append((CHANGED_DEFAULT_IN_METHOD, name, old_args[i], old_defs[j], new_defs[j]))
+                    old_j = old_defs[j]
+                    new_j = new_defs[j]
+                    old_j = _norm_tuple_list(old_j)
+                    new_j = _norm_tuple_list(new_j)
+                    if old_j != new_j:
+                        diffs.append((CHANGED_DEFAULT_IN_METHOD, name, old_args[i], old_j, new_j))
                 except:
                     pass
             if len(old_defs) < len(new_defs):
@@ -101,7 +113,7 @@ def _diff_method(new, old):
     return diffs
 
 
-def _diff_class(new, old):
+def _diff_class(new, old, context=''):
     name = new['name']
     assert name == old['name']
     diffs = []
@@ -121,7 +133,7 @@ def _diff_class(new, old):
         if k in new_bases:
             old_cls = old_bases[k]
             new_cls = new_bases[k]
-            diffs += _diff_class(new_cls, old_cls)
+            diffs += _diff_class(new_cls, old_cls, name)
     old_methods = {}
     new_methods = {}
     for method in old['methods']:
@@ -153,11 +165,11 @@ def _diff_class(new, old):
         if k in new_methods:
             new_type = new_methods[k][0]
             if old_type != new_type:
-                diffs.append((CHANGED_TYPE_IN_CLASS, name, old_type, new_type))
+                diffs.append((CHANGED_TYPE_IN_CLASS, name, k, old_type, new_type))
             elif old_type != 'property':
-                diffs += _diff_method(new_methods[k][1], old_methods[k][1])
+                diffs += _diff_method(new_methods[k][1], old_methods[k][1], name)
         elif k in new['variables']:
-            diffs.append((CHANGED_TYPE_IN_CLASS, name, old_type, new['variables'][k]))
+            diffs.append((CHANGED_TYPE_IN_CLASS, name, k, old_type, new['variables'][k]))
         else:
             if old_type == 'staticmethod':
                 change = MISSING_STATIC_METHOD_IN_CLASS
@@ -179,7 +191,7 @@ def _diff_class(new, old):
     return diffs
 
 
-def _diff_module(new, old):
+def _diff_module(new, old, context=''):
     diffs = []
     name = new['name']
     assert name == old['name']
@@ -202,15 +214,15 @@ def _diff_module(new, old):
                 if old_type == 'class':
                     old_cls = v[1]
                     new_cls = v2[1]
-                    diffs += _diff_class(new_cls, old_cls)
+                    diffs += _diff_class(new_cls, old_cls, name)
                 elif old_type == 'module':
                     old_module = v[1]
                     new_module = v2[1]
-                    diffs += _diff_module(new_module, old_module)
+                    diffs += _diff_module(new_module, old_module, name)
                 elif old_type == 'method':
                     old_method = v[1]
                     new_method = v2[1]
-                    diffs += _diff_method(new_method, old_method)
+                    diffs += _diff_method(new_method, old_method, name)
                 elif old_type == 'variable':
                     old_var_type = v[1]
                     new_var_type = v[1]
@@ -237,5 +249,5 @@ def _diff_module(new, old):
                 change = NEW_CLASS_IN_MODULE
             elif new_type == 'module':
                 change = NEW_MODULE_IN_MODULE
-            diffs.append((change, name, k))      
+            diffs.append((change, name, k))
     return diffs
