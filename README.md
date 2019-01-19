@@ -42,6 +42,8 @@ with open('api.json', 'w') as f:
 * Create `test_api.py` in the root of your project (next to `setup.py`):
 
 ```python
+# test_api.py
+
 import myproject
 import pyux
 import json
@@ -62,7 +64,7 @@ if diff:
 
 ```
 * Install your package (`python setup.py install`).
-* Run `update_api.py` once to create an "API hash" which will be saved to `api.json ('python update_api.py').
+* Run `update_api.py` once to create an "API hash" which will be saved to `api.json` ('python update_api.py').
 * Include `test_api.py` in your CI build.
 
 Any API changes beyond this point will break your build!
@@ -70,6 +72,3 @@ Any API changes beyond this point will break your build!
 If you really want to make an API change:
 * Install your package after making the changes (`python setup.py install`).
 * Run `update_api.py`
-
-
-
