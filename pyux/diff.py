@@ -3,7 +3,7 @@ from .changes import *
 
 def diff(new, old):
     if isinstance(new, (list, tuple)):
-        assert isinstance(old, list, tuple)
+        assert isinstance(old, (list, tuple))
         assert len(new) == len(old)
         diffs = []
         for n, o in zip(new, old):
