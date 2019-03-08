@@ -4,7 +4,7 @@ from setuptools import find_packages
 
 setup(
       name='pyux',
-      version='0.0.5',
+      version='0.0.7',
       description='Utility to check API integrity in python libraries',
       author='Fariz Rahman',
       author_email='farizrahman4u@gmail.com',
